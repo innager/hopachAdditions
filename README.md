@@ -1,14 +1,14 @@
 # hopachAdditions
 
-- **Provides additional distances and an option for a user-specified distance;**
-- **removes repeated calculation of a distance matrix.**
+- *Provides additional distances and an option for a user-specified distance;*
+- *removes repeated calculation of a distance matrix.*
 
 **Distances:** 
-1. general binary;
-2. special case - Jaccard distance;
-3. another binary that does not fit into a general framework in (1);
-4. S-function distance that replaces a step cut-off function with a curve (S-shaped); additional parameters provided to vary the shape of the curve. Takes *p*-values as input.
-5. An option for a user-provided distance function with an aritrary number of parameters.
+* general binary;
+* special case - Jaccard distance;
+* another binary that does not fit into a general framework in (1);
+* S-function distance that replaces a step cut-off function with a curve (S-shaped); additional parameters provided to vary the shape of the curve. Takes *p*-values as input.
+* An option for a user-provided distance function with an aritrary number of parameters.
 
 ### To use in R:
 ```

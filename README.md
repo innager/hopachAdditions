@@ -8,7 +8,7 @@
 * special case - Jaccard distance;
 * another binary that does not fit into a general framework in (1);
 * S-function distance that replaces a step cut-off function with a curve (S-shaped); additional parameters provided to vary the shape of the curve. Takes *p*-values as input.
-* An option for a user-provided distance function with an aritrary number of parameters.
+* An option for a user-provided distance function with arbitrary parameters.
 
 ### To use in R:
 ```

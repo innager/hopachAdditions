@@ -12,37 +12,37 @@
 
 # General binary
 binary.distance <- function(x, y, alpha1, alpha2) {
-	n <- length(x)
-	ones <- which(x == 1)
-	a <- sum(y[ones])
-	d <- n - length(ones) - sum(y[-ones])
-	bc <- n - a - d
-	bc/(alpha1*a + alpha2*d + bc)
+    n <- length(x)
+    ones <- which(x == 1)
+    a <- sum(y[ones])
+    d <- n - length(ones) - sum(y[-ones])
+    bc <- n - a - d
+    bc/(alpha1*a + alpha2*d + bc)
 }
 
 # Special case binary with alpha1 = 1, alpha2 = 0
 jaccard.distance <- function(x, y) {
-	non.zero <- sum(x + y != 0)
-	diff <- sum(x + y == 1)
-	return(diff/non.zero)
+    non.zero <- sum(x + y != 0)
+    diff <- sum(x + y == 1)
+    return(diff/non.zero)
 }
 
 # d(1, 1) = 0; d(0, 0) = 1/2; d(1, 0) = d(0, 1) = 1,
 # where 1 indicates significant and 0 - not significant
 b3 <- function(x, y) {
-	s <- rowSums(cbind(x, y))
-	s[!s] <- 3/2
-	sum(2 - s)
+    s <- rowSums(cbind(x, y))
+    s[!s] <- 3/2
+    sum(2 - s)
 }
 
 # S-function
 # x, y are p-values
 sfun.distance <- function(x, y, a, pow) { 
-	sfun <- function(x) 1 - exp(-a * x^pow)          # shape of the curve
-	signif <- which((x>0.2) + (y>0.2) < 2)
-	newx <- x[signif]
-	newy <- y[signif]
-	sum(abs(sfun(newx) - sfun(newy)))/length(signif)
+    sfun <- function(x) 1 - exp(-a * x^pow)          # shape of the curve
+    signif <- which((x>0.2) + (y>0.2) < 2)
+    newx <- x[signif]
+    newy <- y[signif]
+    sum(abs(sfun(newx) - sfun(newy)))/length(signif)
 }
 
 #----------------------------------------------------------------------------#
@@ -50,66 +50,66 @@ sfun.distance <- function(x, y, a, pow) {
 #----------------------------------------------------------------------------#
 
 binary.distance.matrix <- function(X, alpha1 = 1, alpha2 = 0) {
-	n <- nrow(X)
-	dist.mat <- matrix(NA, n, n)
-	for (i in 2:n) {
-		for (j in 1:(i-1)) {
-			dist.mat[i, j] <- dist.mat[j, i] <- binary.distance(X[i, ], X[j, ], 
-			                                       alpha1, alpha2)
-		}
-	}
-  diag(dist.mat) <- 0
-  return(dist.mat)
+    n <- nrow(X)
+    dist.mat <- matrix(NA, n, n)
+    for (i in 2:n) {
+        for (j in 1:(i-1)) {
+            dist.mat[i, j] <- dist.mat[j, i] <- binary.distance(X[i, ], X[j, ], 
+                                                                alpha1, alpha2)
+        }
+    }
+    diag(dist.mat) <- 0
+    return(dist.mat)
 }
 
 jaccard.distance.matrix <- function(X) {
-	n <- nrow(X)
-	dist.mat <- matrix(NA, n, n)
-	for (i in 2:n) {
-		for (j in 1:(i-1)) {
-			dist.mat[i, j] <- dist.mat[j, i] <- jaccard.distance(X[i, ], X[j, ])
-		}
-	}
-  diag(dist.mat) <- 0
-  return(dist.mat)
+    n <- nrow(X)
+    dist.mat <- matrix(NA, n, n)
+    for (i in 2:n) {
+        for (j in 1:(i-1)) {
+            dist.mat[i, j] <- dist.mat[j, i] <- jaccard.distance(X[i, ], X[j, ])
+        }
+    }
+    diag(dist.mat) <- 0
+    return(dist.mat)
 }
 
 binary3.distance.matrix <- function(X) {
-	n <- nrow(X)
-	dist.mat <- matrix(NA, n, n)
-	for (i in 2:n) {
-		for (j in 1:(i-1)) {
-			dist.mat[i, j] <- dist.mat[j, i] <- binary3.distance(X[i, ], X[j, ])
-		}
-	}
-  diag(dist.mat) <- 0
-  return(dist.mat)
+    n <- nrow(X)
+    dist.mat <- matrix(NA, n, n)
+    for (i in 2:n) {
+        for (j in 1:(i-1)) {
+            dist.mat[i, j] <- dist.mat[j, i] <- binary3.distance(X[i, ], X[j, ])
+        }
+    }
+    diag(dist.mat) <- 0
+    return(dist.mat)
 }
 
 
 sfun.distance.matrix <- function(X, a = 150, pow = 2) {
-	n <- nrow(X)
-	dist.mat <- matrix(NA, n, n)
-	for (i in 2:n) {
-		for (j in 1:(i-1)) {
-			dist.mat[i, j] <- dist.mat[j, i] <- sfun.distance(X[i, ], X[j, ], 
-			                                       a, pow)
-		}
-	}
-  diag(dist.mat) <- 0
-  return(dist.mat)
+    n <- nrow(X)
+    dist.mat <- matrix(NA, n, n)
+    for (i in 2:n) {
+        for (j in 1:(i-1)) {
+            dist.mat[i, j] <- dist.mat[j, i] <- sfun.distance(X[i, ], X[j, ], 
+                                                              a, pow)
+        }
+    }
+    diag(dist.mat) <- 0
+    return(dist.mat)
 }
 
 user.distance.matrix <- function(X, ...) {
-	n <- nrow(X)
-	dist.mat <- matrix(NA, n, n)
-	for (i in 2:n) {
-		for (j in 1:(i-1)) {
-			dist.mat[i, j] <- dist.mat[j, i] <- user.distance(X[i, ], X[j, ], ...)
-		}
-	}
-  diag(dist.mat) <- 0
-  return(dist.mat)
+    n <- nrow(X)
+    dist.mat <- matrix(NA, n, n)
+    for (i in 2:n) {
+        for (j in 1:(i-1)) {
+            dist.mat[i, j] <- dist.mat[j, i] <- user.distance(X[i, ], X[j, ], ...)
+        }
+    }
+    diag(dist.mat) <- 0
+    return(dist.mat)
 }
 
 ##############################################################################
@@ -147,13 +147,13 @@ distancematrix <- function(X, d, alpha1 = 1, alpha2 = 0, a = 150, pow = 2,
 #----------------------------------------------------------------------------#
 
 dissbinary <- function(X, alpha1, alpha2, na.rm = TRUE) {
-	if (!is.matrix(X)) {
+    if (!is.matrix(X)) {
         stop(paste(sQuote("X"), "not a matrix"))
     }
     out <- as.dist(binary.distance.matrix(X, alpha1, alpha2))
     dmat <- new("hdist", Data = out[1:length(out)], Size = attr(out, 
-        "Size"), Labels = (1:(attr(out, "Size"))), Call = as.character(attr(out, 
-        "call")[3]))
+                                                                "Size"), Labels = (1:(attr(out, "Size"))), Call = as.character(attr(out, 
+                                                                                                                                    "call")[3]))
     return(dmat)
 }
 
@@ -163,41 +163,41 @@ dissjaccard <- function(X, na.rm = TRUE) {
     }
     out <- dist(X, method = "binary")
     dmat <- new("hdist", Data = out[1:length(out)], Size = attr(out, 
-        "Size"), Labels = (1:(attr(out, "Size"))), Call = as.character(attr(out, 
-        "call")[3]))
+                                                                "Size"), Labels = (1:(attr(out, "Size"))), Call = as.character(attr(out, 
+                                                                                                                                    "call")[3]))
     return(dmat)
 }
 
 dissbinary3 <- function(X, na.rm = TRUE) {
-	if (!is.matrix(X)) {
+    if (!is.matrix(X)) {
         stop(paste(sQuote("X"), "not a matrix"))
     }
     out <- as.dist(binary3.distance.matrix(X))
     dmat <- new("hdist", Data = out[1:length(out)], Size = attr(out, 
-        "Size"), Labels = (1:(attr(out, "Size"))), Call = as.character(attr(out, 
-        "call")[3]))
+                                                                "Size"), Labels = (1:(attr(out, "Size"))), Call = as.character(attr(out, 
+                                                                                                                                    "call")[3]))
     return(dmat)
 }
 
 disssfun <- function(X, a, pow, na.rm = TRUE) {
-	if (!is.matrix(X)) {
+    if (!is.matrix(X)) {
         stop(paste(sQuote("X"), "not a matrix"))
     }
     out <- as.dist(sfun.distance.matrix(X, a, pow))
     dmat <- new("hdist", Data = out[1:length(out)], Size = attr(out, 
-        "Size"), Labels = (1:(attr(out, "Size"))), Call = as.character(attr(out, 
-        "call")[3]))
+                                                                "Size"), Labels = (1:(attr(out, "Size"))), Call = as.character(attr(out, 
+                                                                                                                                    "call")[3]))
     return(dmat)
 }
 
 dissuser <- function(X, na.rm = TRUE, ...) {
-	if (!is.matrix(X)) {
+    if (!is.matrix(X)) {
         stop(paste(sQuote("X"), "not a matrix"))
     }
     out <- as.dist(user.distance.matrix(X, ...))
     dmat <- new("hdist", Data = out[1:length(out)], Size = attr(out, 
-        "Size"), Labels = (1:(attr(out, "Size"))), Call = as.character(attr(out, 
-        "call")[3]))
+                                                                "Size"), Labels = (1:(attr(out, "Size"))), Call = as.character(attr(out, 
+                                                                                                                                    "call")[3]))
     return(dmat)
 }
 

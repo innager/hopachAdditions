@@ -297,459 +297,465 @@ vdissuser <- function(X, y, ...) {
 ##########            updated parameters for functions              ##########
 ##############################################################################
 
-hopach <- function (data, dmat = NULL, d = "cosangle", clusters = "best", 
-    K = 15, 
-    kmax = 9, 
-    khigh = 9, 
-    coll = "seq", 
-    newmed = "medsil", 
-    mss = "med", 
-    impr = 0, 
-    initord = "co", 
-    ord = "own", 
-    verbose = FALSE, alpha1 = 1, alpha2 = 0, a = 150, pow = 2, ...) 
-{
-    if (inherits(data, "ExpressionSet")) 
-        data <- exprs(data)
-    data <- as.matrix(data)
-    if (is.null(dmat)) {
-        dmat <- distancematrix(data, d, alpha1, alpha2, a, pow, na.rm = TRUE, ...)
-    }
-    else if (is.matrix(dmat)) {
-        dmat <- as(dmat, "hdist")
-    }
-    else if (class(dmat) == "dist") {
-        dmat <- hdist(Data = as.numeric(dmat), Size = attr(dmat, 
-            "Size"), Labels = (1:(attr(dmat, "Size"))), Call = as.character(attr(dmat, 
-            "call"))[3])
-    }
-    else if (!is.hdist(dmat)) {
-        stop("Distance matrix could not be created into hdist object.")
-    }
-    if (K > 15) {
-        K <- 15
-        warning("K set to 15 - can't do more than 15 splits")
-    }
-    if (K < 1) {
-        K <- 1
-        warning("K set to 1 - can't do less than 1 level")
-    }
-    if (clusters != "none") {
-        cuttree <- mssrundown(data, K, kmax, khigh, d, dmat, 
-            initord, coll, newmed, stop = (clusters == "greedy"), 
-            finish = TRUE, within = mss, between = mss, impr, 
-            verbose, alpha1, alpha2, a, pow, ...)
-        if (cuttree[[1]] > 1) 
-            cutord <- orderelements(cuttree, data, rel = ord, 
-                d, dmat, alpha1, alpha2, a, pow, ...)[[2]]
-        else cutord <- NULL
-        out1 <- list(k = cuttree[[1]], medoids = cuttree[[2]], 
-            sizes = cuttree[[3]], labels = cuttree[[4]], order = cutord)
-        finaltree <- msscomplete(cuttree, data, K, khigh, d, 
-            dmat, within = mss, between = mss, verbose, alpha1, alpha2, 
-            a, pow, ...)
-    }
-    else {
-        out1 <- NULL
-        finaltree <- msscomplete(mssinitlevel(as.matrix(data), 
-            kmax, khigh, d, dmat, within = mss, between = mss, 
-            initord, verbose = FALSE, alpha1, alpha2, a, pow, ...), 
-            data, K, khigh, d, dmat, within = mss, between = mss, 
-            verbose, alpha1, alpha2, a, pow, ...)
-    }
-    dimnames(finaltree[[6]]) <- list(NULL, c("label", "medoid"))
-    out2 <- list(labels = finaltree[[4]], order = orderelements(finaltree, 
-        data, rel = ord, d, dmat, alpha1, alpha2, a, pow, ...)[[2]], 
-        medoids = finaltree[[6]])
-    return(list(clustering = out1, final = out2, call = match.call(), 
-        metric = d))
+hopach<-function(data, dmat=NULL, d="cosangle", clusters="best", K=15,
+                 kmax=9, khigh=9, coll="seq", newmed="medsil",
+                 mss="med", impr=0,initord="co",ord="own", verbose=FALSE,
+                 alpha1 = 1, alpha2 = 0, a = 150, pow = 2, ...){
+	if(inherits(data,"ExpressionSet")) 
+		data<-exprs(data)
+	data<-as.matrix(data)
+        p<-nrow(data)
+
+	# Convert to hdist immediately #
+	if( is.null(dmat) ){
+      	dmat<-distancematrix(data,d, alpha1, alpha2, a, pow, na.rm = TRUE, ...)
+	}else if( is.matrix(dmat) && nrow(dmat)==p && ncol(dmat)==p){
+		dmat <- as(dmat,"hdist")
+	}else if( class(dmat) == "dist" ){
+		dmat <- hdist(Data=as.numeric(dmat), Size=attr(dmat,"Size"), Labels=(1:(attr(dmat,"Size"))), Call=as.character(attr(dmat,"call"))[3])
+	}else if(!is.hdist(dmat)){
+		stop("Distance matrix could not be transformed into hdist object.") 
+	}
+
+	if(K>15){
+		K<-15
+		warning("K set to 15 - can't do more than 15 splits")
+	}
+	if(K<1){
+		K<-1
+		warning("K set to 1 - can't do less than 1 level")
+	}
+	if(clusters!="none"){
+		cuttree<-mssrundown(data, K, kmax, khigh, d, dmat,
+                                    initord, coll, newmed,
+                 stop=(clusters=="greedy"), finish=TRUE, within=mss,
+                                    between=mss, impr, verbose, 
+                                    alpha1, alpha2, a, pow, ...) 
+		if(cuttree[[1]]>1) 
+			cutord<-orderelements(cuttree,data,rel=ord,d,dmat, 
+			                      alpha1, alpha2, a, pow, ...)[[2]]
+		else 
+			cutord<-NULL
+		out1<-list(k=cuttree[[1]],medoids=cuttree[[2]],sizes=cuttree[[3]],labels=cuttree[[4]],order=cutord)
+		finaltree<-msscomplete(cuttree, data, K, khigh, d,
+                 dmat, within=mss, between=mss, verbose, alpha1, alpha2, a, pow, ...)
+	}
+	else{
+		out1<-NULL
+		finaltree<-msscomplete(mssinitlevel(as.matrix(data),
+                 kmax, khigh, d, dmat, within=mss, between=mss,
+                 initord), data, K, khigh, d, dmat, within=mss,
+                 between=mss, verbose, alpha1, alpha2, a, pow, ...)
+	}
+	dimnames(finaltree[[6]])<-list(NULL,c("label","medoid"))
+	out2<-list(labels=finaltree[[4]],
+                 order=orderelements(finaltree, data, rel=ord, d,
+                 dmat, alpha1, alpha2, a, pow, ...)[[2]], medoids=finaltree[[6]])
+	return(list(clustering=out1, final=out2, call=match.call(), metric=d))
 }
 
-mssrundown <- function (data, K = 16, kmax = 9, khigh = 9, d = "cosangle", 
-    dmat = NULL, initord = "co", coll = "seq", newmed = "medsil", 
-    stop = TRUE, finish = FALSE, within = "med", between = "med", 
-    impr = 0, verbose = FALSE, alpha1, alpha2, a, pow, ...) 
-{
-    if (!is.matrix(data)) 
-        stop("First arg to mssrundown() must be a matrix")
-    bestlevel <- level <- mssinitlevel(data, kmax, khigh, d, 
-        dmat, within, between, initord, verbose, alpha1, alpha2, a, pow, ...)
-    bestmss <- mss <- labelstomss(level[[4]], dmat, khigh, within, 
-        between)
-    bestl <- l <- 1
-    ind <- 0
-    if (verbose) 
-        cat("Searching for main clusters... \n")
-    if (level[[5]] == 1) 
-        return(level)
-    while ((l <= K) && (ind == 0)) {
-        if (verbose) 
-            cat("Level ", l, "\n")
-        if (coll == "seq") 
-            levelc <- msscollap(data, level, khigh, d, dmat, 
-                newmed, within, between, impr, alpha1, alpha2, a, pow, ...)
-        if (coll == "all") 
-            levelc <- mssmulticollap(data, level, khigh, d, dmat, 
-                newmed, within, between, impr, alpha1, alpha2, a, pow, ...)
-        mss <- labelstomss(levelc[[4]], dmat, khigh, within, 
-            between)
-        if (mss >= bestmss & stop == TRUE) 
-            ind <- 1
-        else {
-            if (mss < bestmss) {
-                bestlevel <- levelc
-                bestmss <- mss
-                bestl <- l
-            }
-        }
-        l <- l + 1
-        if (l <= K) {
-            level <- mssnextlevel(data, levelc, dmat, kmax, khigh, 
-                within, between)
-            if (finish == TRUE) {
-                if (sum(trunc(level[[4]]/10) * 10 == level[[4]]) == 
-                  length(level[[4]]) & l <= K) {
-                  ind <- 1
-                  bestlevel <- levelc
-                  bestmss <- mss
-                  bestl <- (l - 1)
-                }
-            }
-        }
-    }
-    if (verbose) 
-        cat("Identified", bestlevel[[1]], " main clusters in level", 
-            bestl, "with mSS =", bestmss, "\n")
-    return(bestlevel)
-}
+mssrundown<-function(data, K=16, kmax=9, khigh=9, d="cosangle",
+	dmat=NULL, initord="co", coll="seq", newmed="medsil", stop=TRUE,
+	finish=FALSE, within="med",between="med",impr=0, verbose=FALSE,
+	alpha1, alpha2, a, pow, ...) 
+{ 
+		  #print("mssrundown")
+	if(!is.matrix(data))
+		stop("First arg to mssrundown() must be a matrix")
 
-orderelements <- function (level, data, rel = "own", d = "cosangle", 
-    dmat = NULL, alpha1, alpha2, a, pow, ...) 
-{
-    idn <- 1:length(data[, 1])
-    k <- level[[1]]
-    labels <- level[[4]]
-    medoids <- level[[2]]
-    clussizes <- level[[3]]
-    ord <- order(labels)
-    idnord <- idn[ord]
-    subdataord <- data[ord, ]
-    if (is.null(dmat)) 
-        dmat <- distancematrix(data, d, alpha1, alpha2, a, pow, na.rm = TRUE, ...)
-    distord <- dmat[ord, ]
-    labelsord <- labels[ord]
-    count <- 1
-    for (j in (1:k)) {
-        start <- count
-        end <- count + clussizes[j] - 1
-        if (clussizes[j] > 2) {
-            tempid <- idnord[start:end]
-            if (rel == "co") {
-                distj <- distord[, ord][start:end, start:end]
-                idnord[start:end] <- tempid[improveordering(distj)]
-            }
-            else {
-                if (rel == "neighbor") {
-                  if (j < k) 
-                    mednext <- medoids[j + 1]
-                  else mednext <- medoids[j - 1]
-                }
-                else mednext <- medoids[j]
-                dmednext <- distord[start:end, mednext]
-                if (rel == "neighbor") {
-                  if (j < k) 
-                    ordtemp <- rev(order(dmednext))
-                  else ordtemp <- order(dmednext)
-                }
-                else ordtemp <- order(dmednext)
-                idnord[start:end] <- tempid[ordtemp]
-            }
-        }
-        else idnord[start:end] <- idnord[start:end]
-        count <- count + clussizes[j]
-    }
-    list(data[idnord, ], idnord)
+	bestlevel<-level<-mssinitlevel(data, kmax, khigh, d, dmat, within, between, initord, verbose,
+	                               alpha1, alpha2, a, pow, ...)
+	bestmss<-mss<-labelstomss(level[[4]],dmat,khigh,within,between)
+	bestl<-l<-1
+	ind<-0
+        if(verbose)
+            cat("Searching for main clusters... \n")
+	if(level[[5]]==1)
+		return(level)
+	while((l<=K) && (ind==0)){
+		if(verbose) cat("Level ",l,"\n")
+		if(coll=="seq")	
+			levelc<-msscollap(data,level,khigh,d,dmat,newmed,within,between,impr,
+			                  alpha1, alpha2, a, pow, ...)
+		if(coll=="all") 
+			levelc<-mssmulticollap(data,level,khigh,d,dmat,newmed,within,between,impr,
+			                       alpha1, alpha2, a, pow, ...)
+		mss<-labelstomss(levelc[[4]],dmat,khigh,within,between)
+		if(mss>=bestmss & stop==TRUE)
+			ind<-1
+		else{
+			if(mss<bestmss){
+				bestlevel<-levelc
+				bestmss<-mss
+				bestl<-l
+			}
+		}
+		l<-l+1
+		if(l<=K){	
+			level<-mssnextlevel(data,levelc,dmat,kmax,khigh,within,between)
+			if(finish==TRUE){
+				if(sum(trunc(level[[4]]/10)*10==level[[4]])==length(level[[4]]) & l<=K){
+					ind<-1
+					bestlevel<-levelc
+					bestmss<-mss
+					bestl<-(l-1)
+				}
+			}
+		}
+	}
+        if(verbose)
+            cat("Identified", bestlevel[[1]],
+                " main clusters in level",
+                bestl, "with MSS =",bestmss,"\n")
+	return(bestlevel)
 }
-
-msscomplete <- function (level, data, K = 16, khigh = 9, d = "cosangle", dmat = NULL, 
-    within = "med", between = "med", verbose = FALSE, alpha1, alpha2, a, pow, ...) 
-{                             # don't really need d and extra parameters for d here
-    if (!is.matrix(data)) 
-        stop("First arg to msscomplete() must be a matrix")
-    count <- digits(level[[4]][1])
-    if (verbose) 
-        cat("Running down without collapsing from Level", count, 
-            "\n")
-    while ((max(level[[3]]) > 3) & (count < K)) {
-        level <- newnextlevel(data, level, dmat, 2, khigh)
-        count <- count + 1
-        if (verbose) 
-            cat("Level", count, "\n")
-    }
-    return(level)
-}
-
-mssinitlevel <- function (data, kmax = 9, khigh = 9, d = "cosangle", dmat = NULL, 
-    within = "med", between = "med", ord = "co", verbose = FALSE, alpha1, alpha2, 
-    a, pow, ...) 
-{
-    if (!is.matrix(data)) 
-        stop("First arg to mssinitlevel() must be a matrix")
-    p <- length(data[, 1])
     
-#-------------------------- THE PROBLEM --------------------------------------#
-# dmat has been converted to an "hdist" object already, so it is NOT a matrix #
-# no need to calculate it again and use distancematrix() here                 #
-#-----------------------------------------------------------------------------#
+orderelements<-function(level,data,rel="own",d="cosangle",dmat=NULL,
+                        alpha1, alpha2, a, pow, ...){
 
-#   if (is.matrix(dmat)) 
-#       dmat <- as.hdist(dmat)
-#   else dmat <- distancematrix(data, d = d)
-    if (dmat@Size != p) 
-        stop("Data and distance matrix dimensions do not agree in mssinitlevel()")
-    m <- msscheck(dmat, kmax, khigh, within, between)
-    if (m[1] == 1) {
-        if (verbose) 
-            cat("No strong evidence for clusters in the first level - \n continuing to split root node anyway. \n")
-        m <- msscheck(dmat, kmax, khigh, within, between, force = TRUE)
-    }
-    pamobj <- pam(dmat@Data, m[1], diss = TRUE)
-    rowmedoids <- pamobj$medoids
-    final <- ifelse(max(pamobj$clusinfo[, 1]) < 3, 1, 0)
-    if (m[1] > 2) {
-        medoidsdata <- as.matrix(data[rowmedoids, ])
-        l <- length(rowmedoids)
-        medoidsdist <- dmat[rowmedoids, rowmedoids]
-        if (ord == "co") 
-            medoidsord <- improveordering(medoidsdist)
-        if (ord == "clust") {
-            mpamobj <- pam(medoidsdist@Size, 2, diss = TRUE)
-            labelsmed <- mpamobj$clustering
-            medmed <- mpamobj$medoids
-            clussizes <- mpamobj$clusinfo[, 1]
-            prevlevel <- mssnextlevel(medoidsdata, list(2, medmed, 
-                clussizes, labelsmed, 0, cbind(c(1, 2), medmed)), 
-                dmat = medoidsdist, kmax, khigh, within, between)
-            final <- prevlevel[[5]]
-            if (final == 0) {
-                depth <- (l - 1)
-                for (j in (1:depth)) {
-                  if (final == 0) {
-                    clustnext <- mssnextlevel(medoidsdata, prevlevel, 
-                      dmat = medoidsdist, kmax, khigh, within, 
-                      between)
-                    final <- clustnext[[5]]
-                  }
-                  if (final == 1) {
-                    j <- depth
-                    prevlevel <- clustnext
-                  }
+	idn<-1:length(data[,1])
+	k<-level[[1]]
+	labels<-level[[4]]
+	medoids<-level[[2]]
+	clussizes<-level[[3]]
+	ord<-order(labels)
+	idnord<-idn[ord]
+	subdataord<-data[ord,]
+
+	if(is.null(dmat))
+		dmat <- distancematrix(data,d, alpha1, alpha2, a, pow, na.rm = TRUE, ...) 
+	distord<-dmat[ord,]
+
+	labelsord<-labels[ord]
+	count<-1
+	for(j in (1:k)){
+		start<-count
+		end<-count+clussizes[j]-1
+		if(clussizes[j]>2){
+			tempid<-idnord[start:end]
+			if(rel=="co"){
+				distj<-distord[,ord][start:end,start:end]
+				idnord[start:end]<-tempid[improveordering(distj)]
+			}
+			else{
+				if(rel=="neighbor"){
+					if(j<k) 
+						mednext<-medoids[j+1]
+					else 
+						mednext<-medoids[j-1]
+				}else 
+					mednext<-medoids[j]
+
+				dmednext<-distord[start:end,mednext]	
+
+				if(rel=="neighbor"){
+					if(j<k) 
+						#ordtemp<-order(dmednext, decreasing = TRUE)
+						ordtemp<-rev(order(dmednext))
+					else 
+						ordtemp<-order(dmednext)
+				}
+				else 
+					ordtemp<-order(dmednext)
+				idnord[start:end]<-tempid[ordtemp]
+			}
+		}
+		else 
+			idnord[start:end]<-idnord[start:end]
+		count<-count+clussizes[j]
+	}
+	list(data[idnord,],idnord)
+}
+
+msscomplete<-function(level, data, K=16, khigh=9, d="cosangle",
+	dmat=NULL, within="med", between="med", verbose=FALSE,
+	alpha1, alpha2, a, pow, ...)  # don't really need d and extra parameters for d here
+{   
+	if(!is.matrix(data))
+		stop("First arg to msscomplete() must be a matrix")
+
+	count<-digits(level[[4]][1])
+        if(verbose)
+            cat("Running down without collapsing from Level",count,"\n")
+	while((max(level[[3]])>3) & (count<K)){
+		level<-newnextlevel(data,level,dmat,2,khigh)
+		count<-count+1
+                if(verbose) cat("Level",count,"\n")
+	}
+	return(level)
+}
+
+mssinitlevel<-function(data, kmax=9, khigh=9, d="cosangle", dmat=NULL,
+                       within="med", between="med", ord="co",
+                       verbose=FALSE, alpha1, alpha2, a, pow, ...)
+{
+		  #print("mssinitlevel")
+	if(!is.matrix(data))
+		stop("First arg to mssinitlevel() must be a matrix")
+
+	p<-nrow(data)
+
+        if(!is.hdist(dmat)){
+           if(is.matrix(dmat) && nrow(dmat)==p && ncol(dmat)==p)
+		dmat<-as.hdist(dmat)
+	   else
+		dmat<-distancematrix(data,d=d, alpha1, alpha2, a, pow, ...)
+        }
+
+	if(dmat@Size != p)
+		stop("Data and distance matrix dimensions do not agree in mssinitlevel()")
+
+	m<-msscheck(dmat,kmax,khigh,within,between)
+	if(m[1]==1){
+      if(verbose)
+		cat("No strong evidence for clusters in the first level - \n continuing to split root node anyway. \n")
+		m<-msscheck(dmat,kmax,khigh,within,between,force=TRUE)
+	}
+
+	pamobj<-pam(dmat@Data, m[1], diss=TRUE)
+	rowmedoids<-pamobj$medoids
+	final<-ifelse(max(pamobj$clusinfo[,1])<3,1,0)
+	if(m[1]>2){			
+		medoidsdata<-as.matrix(data[rowmedoids,])
+		l<-length(rowmedoids)
+		medoidsdist<-dmat[rowmedoids,rowmedoids]
+		if(ord=="co")
+			medoidsord<-improveordering(medoidsdist)
+		if(ord=="clust"){
+			mpamobj<-pam(medoidsdist@Data,2,diss=TRUE)
+			labelsmed<-mpamobj$clustering
+			medmed<-mpamobj$medoids
+			clussizes<-mpamobj$clusinfo[,1]
+			
+			prevlevel<-mssnextlevel(medoidsdata,list(2,medmed,clussizes,labelsmed,0,cbind(c(1,2),medmed)),dmat=medoidsdist,kmax,khigh,within,between)
+			final<-prevlevel[[5]]
+			if(final==0){
+				depth<-(l-1)
+				for(j in (1:depth)){
+					if(final==0){
+						clustnext<-mssnextlevel(medoidsdata,prevlevel,dmat=medoidsdist,kmax,khigh,within,between)
+						final<-clustnext[[5]]
+					}
+					if(final==1){ 
+						j<-depth
+						prevlevel<-clustnext
+					}
+				}
+			}					
+			medoidsord<-orderelements(prevlevel,medoidsdata,rel="neighbor",d=d,dmat=medoidsdist,
+			                          alpha1, alpha2, a, pow, ...)[[2]]
+		}
+		k<-m[1]
+		rowmedoids<-rowmedoids[medoidsord]
+		labels<-lab2<-pamobj$clustering
+		for(j in (1:k)) 
+			lab2[labels==medoidsord[j]]<-j
+		output<-list(k,rowmedoids,pamobj$clusinfo[,1][medoidsord],lab2,final,cbind(1:k,rowmedoids))
+	}
+	else
+		output<-list(2,pamobj$medoids,pamobj$clusinfo[,1],pamobj$clustering,final,cbind(1:2,pamobj$medoids))
+	return(output)
+}
+
+msscollap<-function(data,level,khigh,d="cosangle",dmat=NULL,newmed="medsil",within="med",between="med",impr=0,
+          alpha1, alpha2, a, pow, ...){
+
+	if(impr<0){
+          warning("impr must be positive - setting impr=0.")
+          impr<-0
+        }
+        newk<-level[[1]]
+	mss1<-labelstomss(level[[4]],dmat,khigh,within,between)
+	maxncoll<-max(0,newk-2)
+        ncoll<-0
+	coll<-1
+        if(newk<=2) 
+		coll<-0
+ 	while((coll==1) && (ncoll<= maxncoll)){
+                levelc<-collap(data,level,d,dmat,newmed, alpha1, alpha2, a, pow, ...)
+		mss2<-labelstomss(levelc[[4]],dmat,khigh,within,between)
+		if(mss1==0) 
+			r<-0
+		else 
+			r<-(mss1-mss2)/mss1
+		if(r<impr) 
+			coll<-0 	 
+    		else{
+			mss1<-mss2
+			level<-levelc
+                        ncoll<-ncoll+1
                 }
-            }
-            medoidsord <- orderelements(prevlevel, medoidsdata, rel = "neighbor", 
-                d = d, dmat = medoidsdist, alpha1, alpha2, a, pow, ...)[[2]]
-        }
-        k <- m[1]
-        rowmedoids <- rowmedoids[medoidsord]
-        labels <- lab2 <- pamobj$clustering
-        for (j in (1:k)) lab2[labels == medoidsord[j]] <- j
-        output <- list(k, rowmedoids, pamobj$clusinfo[, 1][medoidsord], 
-            lab2, final, cbind(1:k, rowmedoids))
-    }
-    else output <- list(2, pamobj$medoids, pamobj$clusinfo[, 
-        1], pamobj$clustering, final, cbind(1:2, pamobj$medoids))
-    return(output)
+	}
+	return(level)
+} 
+
+collap<-function(data,level,d="cosangle",dmat=NULL,newmed="medsil",
+                 alpha1, alpha2, a, pow, ...){
+	k<-level[[1]]
+	if(k<3 && newmed!="nn"){
+		warning("Not enough medoids to use newmed='medsil' in collap() - \n using newmed='nn' instead \n") 
+		newmed<-"nn"
+	}
+	medoids<-level[[2]]
+	clussizes<-level[[3]]
+	if(sum(is.na(clussizes))) 
+		warning("NA in clussizes")
+	medoidsdata<-data[medoids,]
+	if(sum(is.na(medoidsdata))>0) 
+		warning("Missing value(s) in medoidsdata in collap()")
+
+	distmed<-dmat[medoids,medoids]
+	distv<-distmed@Data
+
+	indexmin<-order(distv)[1]
+	best<-vectmatrix(indexmin,k)
+	clustfinal<-paircoll(best[1],best[2],data,level,d,dmat,newmed,
+	                     alpha1, alpha2, a, pow, ...)
+	return(clustfinal)
 }
 
-msscollap <- function (data, level, khigh, d = "cosangle", dmat = NULL, newmed = "medsil", 
-    within = "med", between = "med", impr = 0, alpha1, alpha2, a, pow, ...) 
-{
-    newk <- level[[1]]
-    mss1 <- labelstomss(level[[4]], dmat, khigh, within, between)
-    maxncoll <- max(0, newk - 2)
-    ncoll <- 0
-    coll <- 1
-    if (newk <= 2) 
-        coll <- 0
-    while ((coll == 1) && (ncoll <= maxncoll)) {
-        levelc <- collap(data, level, d, dmat, newmed, alpha1, alpha2, a, pow, ...)
-        mss2 <- labelstomss(levelc[[4]], dmat, khigh, within, 
-            between)
-        if (mss1 == 0) 
-            r <- 0
-        else r <- (mss1 - mss2)/mss1
-        if (r < impr) 
-            coll <- 0
-        else {
-            mss1 <- mss2
-            level <- levelc
-            ncoll <- ncoll + 1
-        }
-    }
-    return(level)
+paircoll<-function(i,j,data,level,d="cosangle",dmat=NULL,newmed="medsil",
+                   alpha1, alpha2, a, pow, ...){
+	p<-length(data[,1])
+	k<-level[[1]]
+	labels<-level[[4]]
+	medoids<-level[[2]]
+	clussizes<-level[[3]]
+	N<-length(level[[6]][,1])
+	block<-level[[6]][(N-k+1):N,]
+	if(N==k)
+		prevblock<-NULL
+	else
+		prevblock<-level[[6]][1:(N-k),]
+	if(max(i,j)>k)
+		stop("The clusters to collapse do not exist in paircoll()") 
+	labeli<-labels[medoids[i]]
+	labelj<-labels[medoids[j]]
+	oldlabels<-labels
+	labels[labels==labelj]<-labeli
+	trunclabels<-trunc(oldlabels/10)
+	labelparents<-unique(trunclabels)
+	parenti<-order(labelparents)[labelparents==trunc(labeli/10)]
+	parentj<-order(labelparents)[labelparents==trunc(labelj/10)]
+	if(newmed=="nn")
+		fakemed<-(data[medoids[i],]*clussizes[i]+data[medoids[j],]*clussizes[j])/(clussizes[i]+clussizes[j])
+	if(newmed=="uwnn")
+		fakemed<-(data[medoids[i],]+data[medoids[j],])/2
+	if(newmed=="nn" || newmed=="uwnn"){ 
+		rowsub<-(1:p)[labels==labeli]
+		distsfm<-distancevector(data[rowsub,],as.vector(fakemed),d,
+		                        alpha1, alpha2, a, pow, na.rm = TRUE, ...)
+		medoids[i]<-rowsub[order(distsfm)[1]]
+	}
+	else{
+		#colldist<-as.matrix(dmat[labels==labeli,labels==labeli])
+		colldist<-as(dmat[labels==labeli,labels==labeli],"matrix")
+
+		rowsub<-(1:p)[labels==labeli]
+		if(newmed=="center"){
+			sumdist<-rowSums(colldist)
+		}
+		if(newmed=="medsil"){
+			othermed<-medoids[-c(i,j)]
+			collp<-length(labels[labels==labeli])
+			othern<-length(othermed)
+			if(othern==0)
+				stop("Not enough medoids to use newmed='medsil' in paircoll()")
+			if(is(dmat,"hdist")){
+			 	if(othern==1){ 
+					#otherdist<-cbind(dmat[labels==labeli,othermed])
+					otherdist<-dmat[labels==labeli,othermed]
+				}else{ 
+					#otherdist<-rbind(dmat[labels==labeli,othermed])
+					otherdist<-dmat[labels==labeli,othermed]
+				}
+			}
+
+			if(othern==1)
+				b<-otherdist
+			else
+				b<-apply(otherdist,1,min)
+			b<-matrix(b,nrow=collp,ncol=collp)
+			diag(b)<-0
+			b<-abs(b-colldist)/pmax(colldist,b)
+			sumdist<-rowSums(b)
+			medoids[i]<-rowsub[order(sumdist,decreasing=TRUE)==1]
+			#medoids[i]<-rowsub[rev(order(sumdist))==1]
+		}
+	}	
+	k<-k-1	
+	clussizes[i]<-clussizes[i]+clussizes[j]
+	block[i,2]<-medoids[i]
+	if(j<=k){			
+		for(l in (j:k)){
+			medoids[l]<-medoids[l+1]
+ 		        clussizes[l]<-clussizes[l+1]
+			block[l,]<-block[l+1,]
+		}
+	}
+	medoids<-medoids[1:k]
+	clussizes<-clussizes[1:k]
+	block<-block[1:k,]
+	if(labels[labels==labeli][1]/10==trunclabels[labels==labeli][1]){
+		labels[labels==labeli]<-labels[labels==labeli]+1
+		labels[labels==labelj]<-labels[labels==labelj]+1
+		block[i,1]<-block[i,1]+1
+	}
+	return(list(k,medoids,clussizes,labels,level[[5]],rbind(prevblock,block)))
 }
 
-collap <- function (data, level, d = "cosangle", dmat = NULL, newmed = "medsil", 
-    alpha1, alpha2, a, pow, ...) 
-{
-    k <- level[[1]]
-    if (k < 3) {
-        warning("Not enough medoids to use newmed='medsil' in collap() - \n using newmed='nn' instead \n")
-        newmed <- "nn"
-    }
-    medoids <- level[[2]]
-    clussizes <- level[[3]]
-    if (sum(is.na(clussizes))) 
-        warning("NA in clussizes")
-    medoidsdata <- data[medoids, ]
-    if (sum(is.na(medoidsdata)) > 0) 
-        warning("missing value(s) in medoidsdata in collap()")
-    distmed <- dmat[medoids, medoids]
-    distv <- distmed@Data
-    indexmin <- order(distv)[1]
-    best <- vectmatrix(indexmin, k)
-    clustfinal <- paircoll(best[1], best[2], data, level, d, 
-        dmat, newmed, alpha1, alpha2, a, pow, ...)
-    return(clustfinal)
-}
+mssmulticollap<-function(data,level,khigh,d="cosangle",dmat=NULL,newmed="medsil",within="med",between="med",impr=0,
+         alpha1, alpha2, a, pow, ...){
+	if(!is.matrix(data))
+		stop("First arg to mssmulticollap() must be a matrix")
+	if(impr<0){
+          warning("impr must be positive - setting impr=0.")
+          impr<-0
+        }
+	medoids<-level[[2]]
+	medoidsdata<-data[medoids,]
+	if(sum(is.na(medoidsdata))>0) 
+		warning("Missing value(s) in medoidsdata in mssmulticollap()")
 
-paircoll <- function (i, j, data, level, d = "cosangle", dmat = NULL, 
-    newmed = "medsil", alpha1, alpha2, a, pow, ...) 
-{
-    p <- length(data[, 1])
-    k <- level[[1]]
-    labels <- level[[4]]
-    medoids <- level[[2]]
-    clussizes <- level[[3]]
-    N <- length(level[[6]][, 1])
-    block <- level[[6]][(N - k + 1):N, ]
-    if (N == k) 
-        prevblock <- NULL
-    else prevblock <- level[[6]][1:(N - k), ]
-    if (max(i, j) > k) 
-        stop("The clusters to collapse do not exist in paircoll()")
-    labeli <- labels[medoids[i]]
-    labelj <- labels[medoids[j]]
-    oldlabels <- labels
-    labels[labels == labelj] <- labeli
-    trunclabels <- trunc(oldlabels/10)
-    labelparents <- unique(trunclabels)
-    parenti <- order(labelparents)[labelparents == trunc(labeli/10)]
-    parentj <- order(labelparents)[labelparents == trunc(labelj/10)]
-    if (newmed == "nn") 
-        fakemed <- (data[medoids[i], ] * clussizes[i] + data[medoids[j], 
-            ] * clussizes[j])/(clussizes[i] + clussizes[j])
-    if (newmed == "uwnn") 
-        fakemed <- (data[medoids[i], ] + data[medoids[j], ])/2
-    if (newmed == "nn" || newmed == "uwnn") {
-        rowsub <- (1:p)[labels == labeli]
-        distsfm <- distancevector(data[rowsub, ], as.vector(fakemed), 
-            d, alpha1, alpha2, a, pow, na.rm = TRUE, ...)
-        medoids[i] <- rowsub[order(distsfm)[1]]
-    }
-    else {
-        colldist <- as(dmat[labels == labeli, labels == labeli], 
-            "matrix")
-        rowsub <- (1:p)[labels == labeli]
-        if (newmed == "center") {
-            sumdist <- rowSums(colldist)
-        }
-        if (newmed == "medsil") {
-            othermed <- medoids[-c(i, j)]
-            collp <- length(labels[labels == labeli])
-            othern <- length(othermed)
-            if (othern == 0) 
-                stop("Not enough medoids to use newmed='medsil' in paircoll()")
-            if (is(dmat, "hdist")) {
-                if (othern == 1) {
-                  otherdist <- dmat[labels == labeli, othermed]
-                }
-                else {
-                  otherdist <- dmat[labels == labeli, othermed]
-                }
-            }
-            if (othern == 1) 
-                b <- otherdist
-            else b <- apply(otherdist, 1, min)
-            b <- matrix(b, nrow = collp, ncol = collp)
-            diag(b) <- 0
-            b <- abs(b - colldist)/pmax(colldist, b)
-            sumdist <- rowSums(b)
-            medoids[i] <- rowsub[order(sumdist, decreasing = TRUE) == 
-                1]
-        }
-    }
-    k <- k - 1
-    clussizes[i] <- clussizes[i] + clussizes[j]
-    block[i, 2] <- medoids[i]
-    if (j <= k) {
-        for (l in (j:k)) {
-            medoids[l] <- medoids[l + 1]
-            clussizes[l] <- clussizes[l + 1]
-            block[l, ] <- block[l + 1, ]
-        }
-    }
-    medoids <- medoids[1:k]
-    clussizes <- clussizes[1:k]
-    block <- block[1:k, ]
-    if (labels[labels == labeli][1]/10 == trunclabels[labels == 
-        labeli][1]) {
-        labels[labels == labeli] <- labels[labels == labeli] + 
-            1
-        labels[labels == labelj] <- labels[labels == labelj] + 
-            1
-        block[i, 1] <- block[i, 1] + 1
-    }
-    return(list(k, medoids, clussizes, labels, level[[5]], rbind(prevblock, 
-        block)))
-}
+	distmed<-dmat[medoids,medoids]
+	k<-level[[1]]
+	ord<-order(distmed@Data)
 
-mssmulticollap <- function (data, level, khigh, d = "cosangle", dmat = NULL, newmed = "medsil", 
-    within = "med", between = "med", impr = 0, alpha1, alpha2, a, pow, ...) 
-{
-    if (!is.matrix(data)) 
-        stop("First arg to mssmulticollap() must be a matrix")
-    medoids <- level[[2]]
-    medoidsdata <- data[medoids, ]
-    if (sum(is.na(medoidsdata)) > 0) 
-        warning("missing value(s) in medoidsdata in mssmulticollap()")
-    distmed <- dmat[medoids, medoids]
-    k <- level[[1]]
-    ord <- order(distmed@Data)
-    mss1 <- labelstomss(level[[4]], dmat, khigh, within, between)
-    maxncoll <- max(0, k * (k - 1)/2)
-    ncoll <- 0
-    i <- 1
-    while (i <= maxncoll) {
-        clusts <- vectmatrix(ord[i], k)
-        if (k < 3) {
-            if (newmed == "medsil") 
-                warning("Can't use newmed=medsil with less than 3 clusters. \n Substituting newmed=nn")
-            newmed <- "nn"
-        }
-        levelc <- paircoll(clusts[1], clusts[2], data, level, 
-            d, dmat, newmed, alpha1, alpha2, a, pow, ...)
-        mss2 <- labelstomss(levelc[[4]], dmat, khigh, within, 
-            between)
-        if (mss1 == 0) 
-            r <- 0
-        else r <- (mss1 - mss2)/mss1
-        if (r >= impr) {
-            mss1 <- mss2
-            level <- levelc
-            ncoll <- ncoll + 1
-            k <- level[[1]]
-            maxncoll <- max(0, k * (k - 1)/2)
-            i <- 0
-            medoids <- level[[2]]
-            medoidsdata <- data[medoids, ]
-            if (sum(is.na(medoidsdata)) > 0) 
-                warning("missing value(s) in medoidsdata in mssmulticollap()")
-            distmed <- dmat[medoids, medoids]
-            ord <- order(distmed@Data)
-        }
-        i <- i + 1
-    }
-    return(level)
+	mss1<-labelstomss(level[[4]],dmat,khigh,within,between)
+	maxncoll<-max(0,k*(k-1)/2)
+	ncoll<-0 
+	i<-1
+	while(i<=maxncoll){
+		clusts<-vectmatrix(ord[i],k)
+		if(k<3){
+			if(newmed=="medsil") 
+				warning("Can't use newmed=medsil with less than 3 clusters. \n Substituting newmed=nn")
+			newmed<-"nn"
+		}
+		levelc<-paircoll(clusts[1],clusts[2],data,level,d,dmat,newmed,
+		                 alpha1, alpha2, a, pow, ...)
+		mss2<-labelstomss(levelc[[4]],dmat,khigh,within,between)
+		if(mss1==0) 
+			r<-0
+		else 
+			r<-(mss1-mss2)/mss1
+		if(r>=impr){
+			mss1<-mss2
+			level<-levelc
+                        ncoll<-ncoll+1
+			k<-level[[1]]
+			maxncoll<-max(0,k*(k-1)/2)
+			i<-0
+			medoids<-level[[2]]
+			medoidsdata<-data[medoids,]
+			if(sum(is.na(medoidsdata))>0) 
+				warning("Missing value(s) in medoidsdata in mssmulticollap()")
+
+			distmed<-dmat[medoids,medoids]
+			ord<-order(distmed@Data)
+	        }
+		i<-i+1
+	}
+	return(level)
 }
 

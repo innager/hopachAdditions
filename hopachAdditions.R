@@ -10,7 +10,14 @@
 
 # user.distance <- function(x, y, ...) {}
 
-# General binary
+# General binary 
+#' @param x,y    binary (\code{\{0, 1\}}) vectors of the same length.
+#' @param alpha1 coefficient for \eqn{N_{11}} (the number of positions with 1's 
+#'   in both \code{x} and \code{y}).
+#' @param alpha2 coefficient for \eqn{N_{00}} (the number of positions with 0's 
+#'   in both \code{x} and \code{y}).
+#' @return Distance \eqn{d(x, y)} between \code{x} and \code{y}, \eqn{0 \leq
+#'   d(x, y) \leq 1}.
 binary.distance <- function(x, y, alpha1, alpha2) {
     n <- length(x)
     ones <- which(x == 1)
@@ -21,6 +28,7 @@ binary.distance <- function(x, y, alpha1, alpha2) {
 }
 
 # Special case binary with alpha1 = 1, alpha2 = 0
+#' @param x,y    binary (\code{\{0, 1\}}) vectors of the same length.
 jaccard.distance <- function(x, y) {
     non.zero <- sum(x + y != 0)
     diff <- sum(x + y == 1)
@@ -29,14 +37,20 @@ jaccard.distance <- function(x, y) {
 
 # d(1, 1) = 0; d(0, 0) = 1/2; d(1, 0) = d(0, 1) = 1,
 # where 1 indicates significant and 0 - not significant
-b3 <- function(x, y) {
+#' @param x,y binary (\code{\{0, 1\}}) vectors of the same length.
+binary3.distance <- function(x, y) {
     s <- rowSums(cbind(x, y))
     s[!s] <- 3/2
     sum(2 - s)
 }
 
-# S-function
-# x, y are p-values
+# S-function 
+# x, y are p-values 
+#' @param x,y numeric vectors of the same length. 
+#' @param a   tuning parameter \code{a} for the transformation function \eqn{1 -
+#'   e^{-ax^b}}.
+#' @param pow tuning parameter \code{b} for the transformation function \eqn{1 -
+#'   e^{-ax^b}}.
 sfun.distance <- function(x, y, a, pow) { 
     sfun <- function(x) 1 - exp(-a * x^pow)          # shape of the curve
     signif <- which((x>0.2) + (y>0.2) < 2)
@@ -49,6 +63,14 @@ sfun.distance <- function(x, y, a, pow) {
 #                        distance matrix functions                           #
 #----------------------------------------------------------------------------#
 
+#' @param X binary (\code{\{0, 1\}}) matrix.
+#' @param alpha1 tuning parameter for general binary distance. A coefficient for
+#'   \eqn{N_{11}}, the number of positions with 1's in two vectors for which the
+#'   distance is calculated. Default value is \code{1}.
+#' @param alpha2 tuning parameter for general binary distance. A coefficient for
+#'   \eqn{N_{00}}, the number of positions with 0's in two vectors for which the
+#'   distance is calculated. Default value is \code{0}.
+#' @return A matrix of pair-wise distances between the rows of \code{X}.
 binary.distance.matrix <- function(X, alpha1 = 1, alpha2 = 0) {
     n <- nrow(X)
     dist.mat <- matrix(NA, n, n)
@@ -62,6 +84,7 @@ binary.distance.matrix <- function(X, alpha1 = 1, alpha2 = 0) {
     return(dist.mat)
 }
 
+#' @param X binary (\code{\{0, 1\}}) matrix.
 jaccard.distance.matrix <- function(X) {
     n <- nrow(X)
     dist.mat <- matrix(NA, n, n)
@@ -74,6 +97,7 @@ jaccard.distance.matrix <- function(X) {
     return(dist.mat)
 }
 
+#' @param X binary (\code{\{0, 1\}}) matrix.
 binary3.distance.matrix <- function(X) {
     n <- nrow(X)
     dist.mat <- matrix(NA, n, n)
@@ -86,7 +110,11 @@ binary3.distance.matrix <- function(X) {
     return(dist.mat)
 }
 
-
+#' @param X   numeric matrix.
+#' @param a   tuning parameter \code{a} for the transformation function \eqn{1 -
+#'   e^{-ax^b}}. Default value is \code{150}.
+#' @param pow tuning parameter \code{b} for the transformation function \eqn{1 -
+#'   e^{-ax^b}}. Default value is \code{2}.
 sfun.distance.matrix <- function(X, a = 150, pow = 2) {
     n <- nrow(X)
     dist.mat <- matrix(NA, n, n)
@@ -100,6 +128,8 @@ sfun.distance.matrix <- function(X, a = 150, pow = 2) {
     return(dist.mat)
 }
 
+#' @param X   matrix.
+#' @param ... additional parameters to a user provided distance.
 user.distance.matrix <- function(X, ...) {
     n <- nrow(X)
     dist.mat <- matrix(NA, n, n)
@@ -116,6 +146,17 @@ user.distance.matrix <- function(X, ...) {
 ####################    updated distancematrix function    ###################
 ##############################################################################
 
+#' @param alpha1 tuning parameter for general binary distance. A coefficient for
+#'   \eqn{N_{11}}, the number of positions with 1's in two vectors for which the
+#'   distance is calculated. Default value is \code{1}.
+#' @param alpha2 tuning parameter for general binary distance. A coefficient for
+#'   \eqn{N_{00}}, the number of positions with 0's in two vectors for which the
+#'   distance is calculated. Default value is \code{0}.
+#' @param a   tuning parameter \code{a} for the transformation function \eqn{1 -
+#'   e^{-ax^b}} (S-function distance). Default value is \code{150}.
+#' @param pow tuning parameter \code{b} for the transformation function \eqn{1 -
+#'   e^{-ax^b}} (S-function distance). Default value is \code{2}.
+#' @param ... additional parameters to a user provided distance.
 distancematrix <- function(X, d, alpha1 = 1, alpha2 = 0, a = 150, pow = 2, 
                            na.rm = TRUE, ...) {
     X <- as.matrix(X)
@@ -146,6 +187,12 @@ distancematrix <- function(X, d, alpha1 = 1, alpha2 = 0, a = 150, pow = 2,
 #  auxillary dissjaccard, dissbinary3, dissbinary, and disssfun functions    #
 #----------------------------------------------------------------------------#
 
+#' @param alpha1 tuning parameter for general binary distance. A coefficient for
+#'   \eqn{N_{11}}, the number of positions with 1's in two vectors for which the
+#'   distance is calculated. 
+#' @param alpha2 tuning parameter for general binary distance. A coefficient for
+#'   \eqn{N_{00}}, the number of positions with 0's in two vectors for which the
+#'   distance is calculated. 
 dissbinary <- function(X, alpha1, alpha2, na.rm = TRUE) {
     if (!is.matrix(X)) {
         stop(paste(sQuote("X"), "not a matrix"))
@@ -179,6 +226,10 @@ dissbinary3 <- function(X, na.rm = TRUE) {
     return(dmat)
 }
 
+#' @param a   tuning parameter \code{a} for the transformation function \eqn{1 -
+#'   e^{-ax^b}} (S-function distance). 
+#' @param pow tuning parameter \code{b} for the transformation function \eqn{1 -
+#'   e^{-ax^b}} (S-function distance). 
 disssfun <- function(X, a, pow, na.rm = TRUE) {
     if (!is.matrix(X)) {
         stop(paste(sQuote("X"), "not a matrix"))
@@ -190,6 +241,7 @@ disssfun <- function(X, a, pow, na.rm = TRUE) {
     return(dmat)
 }
 
+#' @param ... additional parameters to a user provided distance.
 dissuser <- function(X, na.rm = TRUE, ...) {
     if (!is.matrix(X)) {
         stop(paste(sQuote("X"), "not a matrix"))
@@ -205,6 +257,17 @@ dissuser <- function(X, na.rm = TRUE, ...) {
 #####              updated distancevector function                  ######
 ##########################################################################
 
+#' @param alpha1 tuning parameter for general binary distance. A coefficient for
+#'   \eqn{N_{11}}, the number of positions with 1's in two vectors for which the
+#'   distance is calculated. Default value is \code{1}.
+#' @param alpha2 tuning parameter for general binary distance. A coefficient for
+#'   \eqn{N_{00}}, the number of positions with 0's in two vectors for which the
+#'   distance is calculated. Default value is \code{0}.
+#' @param a   tuning parameter \code{a} for the transformation function \eqn{1 -
+#'   e^{-ax^b}} (S-function distance). Default value is \code{150}.
+#' @param pow tuning parameter \code{b} for the transformation function \eqn{1 -
+#'   e^{-ax^b}} (S-function distance). Default value is \code{2}.
+#' @param ... additional parameters to a user provided distance.
 distancevector <- function (X, y, d, alpha1 = 1, alpha2 = 0, a = 150, pow = 2, 
                             na.rm = TRUE, ...) {
     X <- as.matrix(X)
@@ -238,6 +301,12 @@ distancevector <- function (X, y, d, alpha1 = 1, alpha2 = 0, a = 150, pow = 2,
 #      auxillary function for distancevector - vdissbinary and others        #
 #----------------------------------------------------------------------------#
 
+#' @param alpha1 tuning parameter for general binary distance. A coefficient for
+#'   \eqn{N_{11}}, the number of positions with 1's in two vectors for which the
+#'   distance is calculated. 
+#' @param alpha2 tuning parameter for general binary distance. A coefficient for
+#'   \eqn{N_{00}}, the number of positions with 0's in two vectors for which the
+#'   distance is calculated. 
 vdissbinary <- function(X, y, alpha1, alpha2) {
     if (!is.matrix(X)) 
         stop("First arg to vdissbinary() must be a matrix")
@@ -271,6 +340,10 @@ vdissbinary3 <- function(X, y) {
     return(out)
 }
 
+#' @param a   tuning parameter \code{a} for the transformation function \eqn{1 -
+#'   e^{-ax^b}} (S-function distance). 
+#' @param pow tuning parameter \code{b} for the transformation function \eqn{1 -
+#'   e^{-ax^b}} (S-function distance). 
 vdisssfun <- function(X, y, a, pow) {
     if (!is.matrix(X)) 
         stop("First arg to vdisssfun() must be a matrix")
@@ -282,6 +355,7 @@ vdisssfun <- function(X, y, a, pow) {
     return(out)
 }
 
+#' @param ... additional parameters to a user provided distance.
 vdissuser <- function(X, y, ...) {
     if (!is.matrix(X)) 
         stop("First arg to vdissuser() must be a matrix")
@@ -297,6 +371,17 @@ vdissuser <- function(X, y, ...) {
 ##########            updated parameters for functions              ##########
 ##############################################################################
 
+#' @param alpha1 tuning parameter for general binary distance. A coefficient for
+#'   \eqn{N_{11}}, the number of positions with 1's in two vectors for which the
+#'   distance is calculated. Default value is \code{1}.
+#' @param alpha2 tuning parameter for general binary distance. A coefficient for
+#'   \eqn{N_{00}}, the number of positions with 0's in two vectors for which the
+#'   distance is calculated. Default value is \code{0}.
+#' @param a   tuning parameter \code{a} for the transformation function \eqn{1 -
+#'   e^{-ax^b}} (S-function distance). Default value is \code{150}.
+#' @param pow tuning parameter \code{b} for the transformation function \eqn{1 -
+#'   e^{-ax^b}} (S-function distance). Default value is \code{2}.
+#' @param ... additional parameters to a user provided distance.
 hopach<-function(data, dmat=NULL, d="cosangle", clusters="best", K=15,
                  kmax=9, khigh=9, coll="seq", newmed="medsil",
                  mss="med", impr=0,initord="co",ord="own", verbose=FALSE,

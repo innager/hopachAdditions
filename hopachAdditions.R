@@ -1,7 +1,7 @@
-# Extra parameters to HOPACH as alpha1, alpha2, a, pow, and ... (for user fn)
+# Extra parameters to HOPACH: alpha1, alpha2, a, pow, threshold, and ... 
+#                                                                (for user fn)
 # Options for HOPACH distances include:
-# USER, BINARY, S-FUN (has optional extra parameters for S-function),
-# SEPARATELY - JACCARD, BINARY 3
+# USER, BINARY,  JACCARD, S-FUN (has optional extra parameters for S-function)
 
 #----------------------------------------------------------------------------#
 #          DISTANCES: user, binary, jaccard (alpha1 = 1, alpha2 = 0),        #    
@@ -27,23 +27,6 @@ binary.distance <- function(x, y, alpha1, alpha2) {
     bc/(alpha1*a + alpha2*d + bc)
 }
 
-# Special case binary with alpha1 = 1, alpha2 = 0
-#' @param x,y    binary (\code{\{0, 1\}}) vectors of the same length.
-jaccard.distance <- function(x, y) {
-    non.zero <- sum(x + y != 0)
-    diff <- sum(x + y == 1)
-    return(diff/non.zero)
-}
-
-# d(1, 1) = 0; d(0, 0) = 1/2; d(1, 0) = d(0, 1) = 1,
-# where 1 indicates significant and 0 - not significant
-#' @param x,y binary (\code{\{0, 1\}}) vectors of the same length.
-binary3.distance <- function(x, y) {
-    s <- rowSums(cbind(x, y))
-    s[!s] <- 3/2
-    sum(2 - s)
-}
-
 # S-function 
 # x, y are p-values 
 #' @param x,y numeric vectors of the same length. 
@@ -51,9 +34,10 @@ binary3.distance <- function(x, y) {
 #'   e^{-ax^b}}.
 #' @param pow tuning parameter \code{b} for the transformation function \eqn{1 -
 #'   e^{-ax^b}}.
-sfun.distance <- function(x, y, a, pow) { 
+#' @param threshold significance threshold.
+sfun.distance <- function(x, y, a, pow, threshold) { 
     sfun <- function(x) 1 - exp(-a * x^pow)          # shape of the curve
-    signif <- which((x>0.2) + (y>0.2) < 2)
+    signif <- which((x > threshold) + (y > threshold) < 2)
     newx <- x[signif]
     newy <- y[signif]
     sum(abs(sfun(newx) - sfun(newy)))/length(signif)
@@ -84,44 +68,19 @@ binary.distance.matrix <- function(X, alpha1 = 1, alpha2 = 0) {
     return(dist.mat)
 }
 
-#' @param X binary (\code{\{0, 1\}}) matrix.
-jaccard.distance.matrix <- function(X) {
-    n <- nrow(X)
-    dist.mat <- matrix(NA, n, n)
-    for (i in 2:n) {
-        for (j in 1:(i-1)) {
-            dist.mat[i, j] <- dist.mat[j, i] <- jaccard.distance(X[i, ], X[j, ])
-        }
-    }
-    diag(dist.mat) <- 0
-    return(dist.mat)
-}
-
-#' @param X binary (\code{\{0, 1\}}) matrix.
-binary3.distance.matrix <- function(X) {
-    n <- nrow(X)
-    dist.mat <- matrix(NA, n, n)
-    for (i in 2:n) {
-        for (j in 1:(i-1)) {
-            dist.mat[i, j] <- dist.mat[j, i] <- binary3.distance(X[i, ], X[j, ])
-        }
-    }
-    diag(dist.mat) <- 0
-    return(dist.mat)
-}
-
 #' @param X   numeric matrix.
 #' @param a   tuning parameter \code{a} for the transformation function \eqn{1 -
 #'   e^{-ax^b}}. Default value is \code{150}.
 #' @param pow tuning parameter \code{b} for the transformation function \eqn{1 -
 #'   e^{-ax^b}}. Default value is \code{2}.
-sfun.distance.matrix <- function(X, a = 150, pow = 2) {
+#' @param threshold significance threshold. Default value is \code{0.2}.
+sfun.distance.matrix <- function(X, a = 150, pow = 2, threshold = 0.2) {
     n <- nrow(X)
     dist.mat <- matrix(NA, n, n)
     for (i in 2:n) {
         for (j in 1:(i-1)) {
             dist.mat[i, j] <- dist.mat[j, i] <- sfun.distance(X[i, ], X[j, ], 
-                                                              a, pow)
+                                                              a, pow, threshold)
         }
     }
     diag(dist.mat) <- 0
@@ -135,7 +94,8 @@ user.distance.matrix <- function(X, ...) {
     dist.mat <- matrix(NA, n, n)
     for (i in 2:n) {
         for (j in 1:(i-1)) {
-            dist.mat[i, j] <- dist.mat[j, i] <- user.distance(X[i, ], X[j, ], ...)
+            dist.mat[i, j] <- dist.mat[j, i] <- user.distance(X[i, ], X[j, ], 
+                                                              ...)
         }
     }
     diag(dist.mat) <- 0
@@ -156,9 +116,11 @@ user.distance.matrix <- function(X, ...) {
 #'   e^{-ax^b}} (S-function distance). Default value is \code{150}.
 #' @param pow tuning parameter \code{b} for the transformation function \eqn{1 -
 #'   e^{-ax^b}} (S-function distance). Default value is \code{2}.
+#' @param threshold significance threshold for S-function distance. Default 
+#'   value is \code{0.2}.
 #' @param ... additional parameters to a user provided distance.
 distancematrix <- function(X, d, alpha1 = 1, alpha2 = 0, a = 150, pow = 2, 
-                           na.rm = TRUE, ...) {
+                           threshold = 0.2, na.rm = TRUE, ...) {
     X <- as.matrix(X)
     if (d == "euclid") 
         return(disseuclid(X, na.rm))
@@ -173,11 +135,9 @@ distancematrix <- function(X, d, alpha1 = 1, alpha2 = 0, a = 150, pow = 2,
     if (d == "binary")
         return(dissbinary(X, alpha1, alpha2, na.rm))    
     if (d == "jaccard")
-        return(dissjaccard(X, na.rm))    
-    if (d == "binary3")
-        return(dissbinary3(X, na.rm))    
-    if (d == "sfun") # S shaped function
-        return(disssfun(X, a, pow, na.rm))   
+        return(dissjaccard(X, na.rm))
+    if (d == "sfun") 
+        return(disssfun(X, a, pow, threshold, na.rm))   
     if (d == "user")
         return(dissuser(X, na.rm, ...)) # user-specified distance
     stop("Distance metric ", d, " not available")
@@ -198,9 +158,9 @@ dissbinary <- function(X, alpha1, alpha2, na.rm = TRUE) {
         stop(paste(sQuote("X"), "not a matrix"))
     }
     out <- as.dist(binary.distance.matrix(X, alpha1, alpha2))
-    dmat <- new("hdist", Data = out[1:length(out)], Size = attr(out, 
-                                                                "Size"), Labels = (1:(attr(out, "Size"))), Call = as.character(attr(out, 
-                                                                                                                                    "call")[3]))
+    dmat <- new("hdist", Data = out[1:length(out)], 
+                Size = attr(out, "Size"), Labels = (1:(attr(out, "Size"))), 
+                Call = as.character(attr(out, "call")[3]))
     return(dmat)
 }
 
@@ -209,20 +169,9 @@ dissjaccard <- function(X, na.rm = TRUE) {
         stop(paste(sQuote("X"), "not a matrix"))
     }
     out <- dist(X, method = "binary")
-    dmat <- new("hdist", Data = out[1:length(out)], Size = attr(out, 
-                                                                "Size"), Labels = (1:(attr(out, "Size"))), Call = as.character(attr(out, 
-                                                                                                                                    "call")[3]))
-    return(dmat)
-}
-
-dissbinary3 <- function(X, na.rm = TRUE) {
-    if (!is.matrix(X)) {
-        stop(paste(sQuote("X"), "not a matrix"))
-    }
-    out <- as.dist(binary3.distance.matrix(X))
-    dmat <- new("hdist", Data = out[1:length(out)], Size = attr(out, 
-                                                                "Size"), Labels = (1:(attr(out, "Size"))), Call = as.character(attr(out, 
-                                                                                                                                    "call")[3]))
+    dmat <- new("hdist", Data = out[1:length(out)], 
+                Size = attr(out, "Size"), Labels = (1:(attr(out, "Size"))), 
+                Call = as.character(attr(out, "call")[3]))
     return(dmat)
 }
 
@@ -230,14 +179,15 @@ dissbinary3 <- function(X, na.rm = TRUE) {
 #'   e^{-ax^b}} (S-function distance). 
 #' @param pow tuning parameter \code{b} for the transformation function \eqn{1 -
 #'   e^{-ax^b}} (S-function distance). 
-disssfun <- function(X, a, pow, na.rm = TRUE) {
+#' @param threshold significance threshold.
+disssfun <- function(X, a, pow, threshold, na.rm = TRUE) {
     if (!is.matrix(X)) {
         stop(paste(sQuote("X"), "not a matrix"))
     }
-    out <- as.dist(sfun.distance.matrix(X, a, pow))
-    dmat <- new("hdist", Data = out[1:length(out)], Size = attr(out, 
-                                                                "Size"), Labels = (1:(attr(out, "Size"))), Call = as.character(attr(out, 
-                                                                                                                                    "call")[3]))
+    out <- as.dist(sfun.distance.matrix(X, a, pow, threshold))
+    dmat <- new("hdist", Data = out[1:length(out)], 
+                Size = attr(out, "Size"), Labels = (1:(attr(out, "Size"))), 
+                Call = as.character(attr(out, "call")[3]))
     return(dmat)
 }
 
@@ -247,9 +197,9 @@ dissuser <- function(X, na.rm = TRUE, ...) {
         stop(paste(sQuote("X"), "not a matrix"))
     }
     out <- as.dist(user.distance.matrix(X, ...))
-    dmat <- new("hdist", Data = out[1:length(out)], Size = attr(out, 
-                                                                "Size"), Labels = (1:(attr(out, "Size"))), Call = as.character(attr(out, 
-                                                                                                                                    "call")[3]))
+    dmat <- new("hdist", Data = out[1:length(out)], 
+                Size = attr(out, "Size"), Labels = (1:(attr(out, "Size"))), 
+                Call = as.character(attr(out, "call")[3]))
     return(dmat)
 }
 
@@ -267,9 +217,11 @@ dissuser <- function(X, na.rm = TRUE, ...) {
 #'   e^{-ax^b}} (S-function distance). Default value is \code{150}.
 #' @param pow tuning parameter \code{b} for the transformation function \eqn{1 -
 #'   e^{-ax^b}} (S-function distance). Default value is \code{2}.
+#' @param threshold significance threshold for S-function distance. Default 
+#'   value is \code{0.2}.
 #' @param ... additional parameters to a user provided distance.
 distancevector <- function (X, y, d, alpha1 = 1, alpha2 = 0, a = 150, pow = 2, 
-                            na.rm = TRUE, ...) {
+                            threshold = 0.2, na.rm = TRUE, ...) {
     X <- as.matrix(X)
     y <- as.vector(y)
     if (d == "cosangle") 
@@ -287,11 +239,9 @@ distancevector <- function (X, y, d, alpha1 = 1, alpha2 = 0, a = 150, pow = 2,
     if (d == "binary") 
         return(vdissbinary(X, y, alpha1, alpha2)) 
     if (d == "jaccard")
-        return(vdissjaccard(X, y))
-    if (d == "binary3") 
-        return(vdissbinary3(X, y)) 
+        return(vdissbinary(X, y, alpha1 = 1, alpha2 = 0))
     if (d == "sfun") 
-        return(vdisssfun(X, y, a, pow))
+        return(vdisssfun(X, y, a, pow, threshold))
     if (d == "user")
         return(vdissuser(X, y, ...))            
     stop("Distance metric ", d, " not available")
@@ -318,40 +268,20 @@ vdissbinary <- function(X, y, alpha1, alpha2) {
     return(out)
 }
 
-vdissjaccard <- function(X, y) {
-    if (!is.matrix(X)) 
-        stop("First arg to vdissjaccard() must be a matrix")
-    if (!is.vector(y)) 
-        stop("Second arg to vdissjaccard() must be a vector")
-    if (length(y) != length(X[1, ])) 
-        stop("matrix and vector dimensions do not agree in vdissjaccard()")
-    out <- apply(X, 1, jaccard.distance, y = y)
-    return(out)
-}
-
-vdissbinary3 <- function(X, y) {
-    if (!is.matrix(X)) 
-        stop("First arg to vdissbinary3() must be a matrix")
-    if (!is.vector(y)) 
-        stop("Second arg to vdissbinary3() must be a vector")
-    if (length(y) != length(X[1, ])) 
-        stop("matrix and vector dimensions do not agree in vdissbinary3()") 
-    out <- apply(X, 1, binary3.distance, y = y)
-    return(out)
-}
-
 #' @param a   tuning parameter \code{a} for the transformation function \eqn{1 -
 #'   e^{-ax^b}} (S-function distance). 
 #' @param pow tuning parameter \code{b} for the transformation function \eqn{1 -
 #'   e^{-ax^b}} (S-function distance). 
-vdisssfun <- function(X, y, a, pow) {
+#' @param threshold significance threshold.
+vdisssfun <- function(X, y, a, pow, threshold) {
     if (!is.matrix(X)) 
         stop("First arg to vdisssfun() must be a matrix")
     if (!is.vector(y)) 
         stop("Second arg to vdisssfun() must be a vector")
     if (length(y) != length(X[1, ])) 
         stop("matrix and vector dimensions do not agree in vdisssfun()") 
-    out <- apply(X, 1, sfun.distance, y = y, a = a, pow = pow)
+    out <- apply(X, 1, sfun.distance, y = y, a = a, pow = pow, 
+                 threshold = threshold)
     return(out)
 }
 
@@ -381,11 +311,13 @@ vdissuser <- function(X, y, ...) {
 #'   e^{-ax^b}} (S-function distance). Default value is \code{150}.
 #' @param pow tuning parameter \code{b} for the transformation function \eqn{1 -
 #'   e^{-ax^b}} (S-function distance). Default value is \code{2}.
+#' @param threshold significance threshold for S-function distance. Default 
+#'   value is \code{0.2}.
 #' @param ... additional parameters to a user provided distance.
 hopach<-function(data, dmat=NULL, d="cosangle", clusters="best", K=15,
                  kmax=9, khigh=9, coll="seq", newmed="medsil",
                  mss="med", impr=0,initord="co",ord="own", verbose=FALSE,
-                 alpha1 = 1, alpha2 = 0, a = 150, pow = 2, ...){
+                 alpha1=1, alpha2=0, a=150, pow=2, threshold=0.2, ...){
 	if(inherits(data,"ExpressionSet")) 
 		data<-exprs(data)
 	data<-as.matrix(data)
@@ -393,7 +325,8 @@ hopach<-function(data, dmat=NULL, d="cosangle", clusters="best", K=15,
 
 	# Convert to hdist immediately #
 	if( is.null(dmat) ){
-      	dmat<-distancematrix(data,d, alpha1, alpha2, a, pow, na.rm = TRUE, ...)
+      	dmat<-distancematrix(data,d, alpha1, alpha2, a, pow, threshold,
+      	                     na.rm = TRUE, ...)
 	}else if( is.matrix(dmat) && nrow(dmat)==p && ncol(dmat)==p){
 		dmat <- as(dmat,"hdist")
 	}else if( class(dmat) == "dist" ){
@@ -415,41 +348,43 @@ hopach<-function(data, dmat=NULL, d="cosangle", clusters="best", K=15,
                                     initord, coll, newmed,
                  stop=(clusters=="greedy"), finish=TRUE, within=mss,
                                     between=mss, impr, verbose, 
-                                    alpha1, alpha2, a, pow, ...) 
+                                    alpha1, alpha2, a, pow, threshold, ...) 
 		if(cuttree[[1]]>1) 
 			cutord<-orderelements(cuttree,data,rel=ord,d,dmat, 
-			                      alpha1, alpha2, a, pow, ...)[[2]]
+			                      alpha1, alpha2, a, pow, threshold, ...)[[2]]
 		else 
 			cutord<-NULL
 		out1<-list(k=cuttree[[1]],medoids=cuttree[[2]],sizes=cuttree[[3]],labels=cuttree[[4]],order=cutord)
 		finaltree<-msscomplete(cuttree, data, K, khigh, d,
-                 dmat, within=mss, between=mss, verbose, alpha1, alpha2, a, pow, ...)
+                 dmat, within=mss, between=mss, verbose, alpha1, alpha2, a, pow, 
+                 threshold, ...)
 	}
 	else{
 		out1<-NULL
 		finaltree<-msscomplete(mssinitlevel(as.matrix(data),
                  kmax, khigh, d, dmat, within=mss, between=mss,
                  initord), data, K, khigh, d, dmat, within=mss,
-                 between=mss, verbose, alpha1, alpha2, a, pow, ...)
+                 between=mss, verbose, alpha1, alpha2, a, pow, threshold, ...)
 	}
 	dimnames(finaltree[[6]])<-list(NULL,c("label","medoid"))
 	out2<-list(labels=finaltree[[4]],
                  order=orderelements(finaltree, data, rel=ord, d,
-                 dmat, alpha1, alpha2, a, pow, ...)[[2]], medoids=finaltree[[6]])
+                 dmat, alpha1, alpha2, a, pow, threshold, ...)[[2]], 
+	           medoids=finaltree[[6]])
 	return(list(clustering=out1, final=out2, call=match.call(), metric=d))
 }
 
 mssrundown<-function(data, K=16, kmax=9, khigh=9, d="cosangle",
 	dmat=NULL, initord="co", coll="seq", newmed="medsil", stop=TRUE,
 	finish=FALSE, within="med",between="med",impr=0, verbose=FALSE,
-	alpha1, alpha2, a, pow, ...) 
+	alpha1, alpha2, a, pow, threshold, ...) 
 { 
 		  #print("mssrundown")
 	if(!is.matrix(data))
 		stop("First arg to mssrundown() must be a matrix")
 
 	bestlevel<-level<-mssinitlevel(data, kmax, khigh, d, dmat, within, between, initord, verbose,
-	                               alpha1, alpha2, a, pow, ...)
+	                               alpha1, alpha2, a, pow, threshold, ...)
 	bestmss<-mss<-labelstomss(level[[4]],dmat,khigh,within,between)
 	bestl<-l<-1
 	ind<-0
@@ -461,10 +396,10 @@ mssrundown<-function(data, K=16, kmax=9, khigh=9, d="cosangle",
 		if(verbose) cat("Level ",l,"\n")
 		if(coll=="seq")	
 			levelc<-msscollap(data,level,khigh,d,dmat,newmed,within,between,impr,
-			                  alpha1, alpha2, a, pow, ...)
+			                  alpha1, alpha2, a, pow, threshold, ...)
 		if(coll=="all") 
 			levelc<-mssmulticollap(data,level,khigh,d,dmat,newmed,within,between,impr,
-			                       alpha1, alpha2, a, pow, ...)
+			                       alpha1, alpha2, a, pow, threshold, ...)
 		mss<-labelstomss(levelc[[4]],dmat,khigh,within,between)
 		if(mss>=bestmss & stop==TRUE)
 			ind<-1
@@ -496,7 +431,7 @@ mssrundown<-function(data, K=16, kmax=9, khigh=9, d="cosangle",
 }
     
 orderelements<-function(level,data,rel="own",d="cosangle",dmat=NULL,
-                        alpha1, alpha2, a, pow, ...){
+                        alpha1, alpha2, a, pow, threshold, ...){
 
 	idn<-1:length(data[,1])
 	k<-level[[1]]
@@ -508,7 +443,8 @@ orderelements<-function(level,data,rel="own",d="cosangle",dmat=NULL,
 	subdataord<-data[ord,]
 
 	if(is.null(dmat))
-		dmat <- distancematrix(data,d, alpha1, alpha2, a, pow, na.rm = TRUE, ...) 
+		dmat <- distancematrix(data,d, alpha1, alpha2, a, pow, threshold, 
+		                       na.rm = TRUE, ...) 
 	distord<-dmat[ord,]
 
 	labelsord<-labels[ord]
@@ -554,7 +490,7 @@ orderelements<-function(level,data,rel="own",d="cosangle",dmat=NULL,
 
 msscomplete<-function(level, data, K=16, khigh=9, d="cosangle",
 	dmat=NULL, within="med", between="med", verbose=FALSE,
-	alpha1, alpha2, a, pow, ...)  # don't really need d and extra parameters for d here
+	alpha1, alpha2, a, pow, threshold, ...)  # don't really need d and extra parameters for d here
 {   
 	if(!is.matrix(data))
 		stop("First arg to msscomplete() must be a matrix")
@@ -572,7 +508,7 @@ msscomplete<-function(level, data, K=16, khigh=9, d="cosangle",
 
 mssinitlevel<-function(data, kmax=9, khigh=9, d="cosangle", dmat=NULL,
                        within="med", between="med", ord="co",
-                       verbose=FALSE, alpha1, alpha2, a, pow, ...)
+                       verbose=FALSE, alpha1, alpha2, a, pow, threshold, ...)
 {
 		  #print("mssinitlevel")
 	if(!is.matrix(data))
@@ -584,7 +520,7 @@ mssinitlevel<-function(data, kmax=9, khigh=9, d="cosangle", dmat=NULL,
            if(is.matrix(dmat) && nrow(dmat)==p && ncol(dmat)==p)
 		dmat<-as.hdist(dmat)
 	   else
-		dmat<-distancematrix(data,d=d, alpha1, alpha2, a, pow, ...)
+		dmat<-distancematrix(data,d=d, alpha1, alpha2, a, pow, threshold, ...)
         }
 
 	if(dmat@Size != p)
@@ -628,7 +564,7 @@ mssinitlevel<-function(data, kmax=9, khigh=9, d="cosangle", dmat=NULL,
 				}
 			}					
 			medoidsord<-orderelements(prevlevel,medoidsdata,rel="neighbor",d=d,dmat=medoidsdist,
-			                          alpha1, alpha2, a, pow, ...)[[2]]
+			                          alpha1, alpha2, a, pow, threshold, ...)[[2]]
 		}
 		k<-m[1]
 		rowmedoids<-rowmedoids[medoidsord]
@@ -643,7 +579,7 @@ mssinitlevel<-function(data, kmax=9, khigh=9, d="cosangle", dmat=NULL,
 }
 
 msscollap<-function(data,level,khigh,d="cosangle",dmat=NULL,newmed="medsil",within="med",between="med",impr=0,
-          alpha1, alpha2, a, pow, ...){
+          alpha1, alpha2, a, pow, threshold, ...){
 
 	if(impr<0){
           warning("impr must be positive - setting impr=0.")
@@ -657,7 +593,8 @@ msscollap<-function(data,level,khigh,d="cosangle",dmat=NULL,newmed="medsil",with
         if(newk<=2) 
 		coll<-0
  	while((coll==1) && (ncoll<= maxncoll)){
-                levelc<-collap(data,level,d,dmat,newmed, alpha1, alpha2, a, pow, ...)
+                levelc<-collap(data,level,d,dmat,newmed, alpha1, alpha2, a, pow, 
+                               threshold, ...)
 		mss2<-labelstomss(levelc[[4]],dmat,khigh,within,between)
 		if(mss1==0) 
 			r<-0
@@ -675,7 +612,7 @@ msscollap<-function(data,level,khigh,d="cosangle",dmat=NULL,newmed="medsil",with
 } 
 
 collap<-function(data,level,d="cosangle",dmat=NULL,newmed="medsil",
-                 alpha1, alpha2, a, pow, ...){
+                 alpha1, alpha2, a, pow, threshold, ...){
 	k<-level[[1]]
 	if(k<3 && newmed!="nn"){
 		warning("Not enough medoids to use newmed='medsil' in collap() - \n using newmed='nn' instead \n") 
@@ -695,12 +632,12 @@ collap<-function(data,level,d="cosangle",dmat=NULL,newmed="medsil",
 	indexmin<-order(distv)[1]
 	best<-vectmatrix(indexmin,k)
 	clustfinal<-paircoll(best[1],best[2],data,level,d,dmat,newmed,
-	                     alpha1, alpha2, a, pow, ...)
+	                     alpha1, alpha2, a, pow, threshold, ...)
 	return(clustfinal)
 }
 
 paircoll<-function(i,j,data,level,d="cosangle",dmat=NULL,newmed="medsil",
-                   alpha1, alpha2, a, pow, ...){
+                   alpha1, alpha2, a, pow, threshold, ...){
 	p<-length(data[,1])
 	k<-level[[1]]
 	labels<-level[[4]]
@@ -729,7 +666,7 @@ paircoll<-function(i,j,data,level,d="cosangle",dmat=NULL,newmed="medsil",
 	if(newmed=="nn" || newmed=="uwnn"){ 
 		rowsub<-(1:p)[labels==labeli]
 		distsfm<-distancevector(data[rowsub,],as.vector(fakemed),d,
-		                        alpha1, alpha2, a, pow, na.rm = TRUE, ...)
+		                        alpha1, alpha2, a, pow, threshold, na.rm = TRUE, ...)
 		medoids[i]<-rowsub[order(distsfm)[1]]
 	}
 	else{
@@ -790,7 +727,7 @@ paircoll<-function(i,j,data,level,d="cosangle",dmat=NULL,newmed="medsil",
 }
 
 mssmulticollap<-function(data,level,khigh,d="cosangle",dmat=NULL,newmed="medsil",within="med",between="med",impr=0,
-         alpha1, alpha2, a, pow, ...){
+         alpha1, alpha2, a, pow, threshold, ...){
 	if(!is.matrix(data))
 		stop("First arg to mssmulticollap() must be a matrix")
 	if(impr<0){
@@ -818,7 +755,7 @@ mssmulticollap<-function(data,level,khigh,d="cosangle",dmat=NULL,newmed="medsil"
 			newmed<-"nn"
 		}
 		levelc<-paircoll(clusts[1],clusts[2],data,level,d,dmat,newmed,
-		                 alpha1, alpha2, a, pow, ...)
+		                 alpha1, alpha2, a, pow, threshold, ...)
 		mss2<-labelstomss(levelc[[4]],dmat,khigh,within,between)
 		if(mss1==0) 
 			r<-0
